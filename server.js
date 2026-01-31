@@ -19,14 +19,14 @@ app.post('/run-command', (req, res) => {
 
     if (error) {
       // Convert \n to real line breaks in error output
-      const errOutput = error.message.replace(/\\n/g,);
+      const errOutput = error.message.replace();
       return res.json({ error: errOutput });
     }
 
     let output = stdout || stderr;
 
     // ✅ MAIN FIX: Convert "\n" text into actual new line
-    output = output.replace(/\\n/g, );
+    output = output.replace( );
 
     res.json({ output: output });
   });
