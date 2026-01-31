@@ -26,7 +26,7 @@ app.post('/run-command', (req, res) => {
     let output = stdout || stderr;
 
     // ✅ MAIN FIX: Convert "\n" text into actual new line
-    output = output.replace(/\\n/g);
+    output = output.replace(/\\n/g, );
 
     res.json({ output: output });
   });
