@@ -32,7 +32,7 @@ app.post('/run-command', (req, res) => {
   });
 });
 
-const PORT = 4040;
+const PORT = 4041;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
