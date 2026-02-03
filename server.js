@@ -4,54 +4,51 @@ const { exec } = require('child_process');
 const app = express();
 app.use(express.json());
 
-// =====================
 // AI API URL
-// =====================
-const AI_API_URL = "https://feeds-collectors-changelog-promises.trycloudflare.com/run-command";
+const AI_API_URL = "https://your-ai-api-url.com/chat";
 
-// =====================
 // USER MODE MEMORY
-// =====================
 const userModes = {};
 const DEFAULT_MODE = 2; // Chatbot
 
-// =====================
 // MAIN API
-// =====================
 app.post('/run-command', async (req, res) => {
   const userIP = req.ip;
-  const input = (req.body.input || "").trim();
+  const message = (req.body.message || "").trim(); // <-- renamed
 
-  if (!input) return res.json({ error: "Empty input" });
+  if (!message) return res.json({ error: "Empty message" });
 
+  // first time user → default mode
   if (!userModes[userIP]) userModes[userIP] = DEFAULT_MODE;
 
   // MODE SWITCH
-  if (input === "1") {
+  if (message === "1") {
     userModes[userIP] = 1;
     return res.json({ status: "Mode changed to CMD" });
   }
-
-  if (input === "2") {
+  if (message === "2") {
     userModes[userIP] = 2;
     return res.json({ status: "Mode changed to CHATBOT" });
   }
 
   const currentMode = userModes[userIP];
 
+  // MODE 1 → CMD
   if (currentMode === 1) {
-    exec(input, (err, stdout, stderr) => {
+    exec(message, (err, stdout, stderr) => {
       if (err) return res.json({ output: err.message });
       const output = stdout || stderr;
       res.json({ output });
     });
-  } else if (currentMode === 2) {
+  }
+  // MODE 2 → CHATBOT
+  else if (currentMode === 2) {
     try {
       // Node 18+ fetch
       const aiRes = await fetch(AI_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input })
+        body: JSON.stringify({ message }) // <-- message
       });
 
       const data = await aiRes.json();
@@ -62,9 +59,7 @@ app.post('/run-command', async (req, res) => {
   }
 });
 
-// =====================
 // SERVER START
-// =====================
 const PORT = process.env.PORT || 4041;
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
