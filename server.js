@@ -5,28 +5,30 @@ const app = express();
 app.use(express.json());
 
 // AI API URL
-const AI_API_URL = "https://your-ai-api-url.com/chat";
+const AI_API_URL = "https://feeds-collectors-changelog-promises.trycloudflare.com/run-command";
 
-// USER MODE MEMORY
+// USER MODE MEMORY (IP based)
 const userModes = {};
-const DEFAULT_MODE = 2; // Chatbot
+const DEFAULT_MODE = 2; // default Chatbot
 
 // MAIN API
 app.post('/run-command', async (req, res) => {
   const userIP = req.ip;
-  const message = (req.body.message || "").trim(); // <-- renamed
 
-  if (!message) return res.json({ error: "Empty message" });
+  // 🔹 now expect "command" instead of "input"
+  const command = (req.body.command || "").trim();
 
-  // first time user → default mode
+  if (!command) return res.json({ error: "Empty command" });
+
+  // first time user → set default mode
   if (!userModes[userIP]) userModes[userIP] = DEFAULT_MODE;
 
   // MODE SWITCH
-  if (message === "1") {
+  if (command === "1") {
     userModes[userIP] = 1;
     return res.json({ status: "Mode changed to CMD" });
   }
-  if (message === "2") {
+  if (command === "2") {
     userModes[userIP] = 2;
     return res.json({ status: "Mode changed to CHATBOT" });
   }
@@ -35,28 +37,30 @@ app.post('/run-command', async (req, res) => {
 
   // MODE 1 → CMD
   if (currentMode === 1) {
-    exec(message, (err, stdout, stderr) => {
+    exec(command, (err, stdout, stderr) => {
       if (err) return res.json({ output: err.message });
       const output = stdout || stderr;
       res.json({ output });
     });
   }
+
   // MODE 2 → CHATBOT
   else if (currentMode === 2) {
     try {
-      // Node 18+ fetch
       const aiRes = await fetch(AI_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }) // <-- message
+        body: JSON.stringify({ message: command })
       });
 
       const data = await aiRes.json();
+
       res.json({ reply: data.reply || data });
     } catch (err) {
       res.json({ error: "AI Server Error" });
     }
   }
+
 });
 
 // SERVER START
