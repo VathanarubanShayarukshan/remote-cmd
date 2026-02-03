@@ -12,7 +12,7 @@ app.use(express.json());
 // AI API
 // =====================
 
-const AI_API_URL = "https://remote-cmd-seven.vercel.app/run-command";
+const AI_API_URL = "hhttps://feeds-collectors-changelog-promises.trycloudflare.com/run-command";
 
 // =====================
 // USER MODE STORAGE
