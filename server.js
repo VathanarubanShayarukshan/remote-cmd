@@ -1,38 +1,125 @@
 const express = require('express');
 const { exec } = require('child_process');
-const path = require('path');
+const axios = require('axios');
+const cors = require('cors');
 
 const app = express();
+
+app.use(cors());
 app.use(express.json());
 
-// Serve static HTML files from "public" folder
-app.use(express.static(path.join(__dirname, 'public')));
+// =====================
+// AI API
+// =====================
 
-app.post('/run-command', (req, res) => {
-  const { command } = req.body;
+const AI_API_URL = "https://remote-cmd-seven.vercel.app/run-command";
 
-  if (!command) {
-    return res.status(400).json({ error: 'No command provided' });
+// =====================
+// USER MODE STORAGE
+// =====================
+
+// IP based mode memory
+const userModes = {};
+
+// Default mode = chatbot
+const DEFAULT_MODE = 2;
+
+// =====================
+// MAIN API
+// =====================
+
+app.post('/run-command', async (req, res) => {
+
+  const userIP = req.ip;
+  const input = (req.body.input || "").trim();
+
+  if (!input) {
+    return res.json({ error: "Empty input" });
   }
 
-  exec(command, (error, stdout, stderr) => {
+  // If user new → set default mode
+  if (!userModes[userIP]) {
+    userModes[userIP] = DEFAULT_MODE;
+  }
 
-    if (error) {
-      // Convert \n to real line breaks in error output
-      const errOutput = error.message.replace();
-      return res.json({ error: errOutput });
+  // =====================
+  // MODE SWITCH
+  // =====================
+
+  if (input === "1") {
+    userModes[userIP] = 1;
+    return res.json({
+      status: "Mode changed to CMD"
+    });
+  }
+
+  if (input === "2") {
+    userModes[userIP] = 2;
+    return res.json({
+      status: "Mode changed to CHATBOT"
+    });
+  }
+
+  const currentMode = userModes[userIP];
+
+  // =====================
+  // MODE 1 → CMD
+  // =====================
+
+  if (currentMode === 1) {
+
+    exec(input, (err, stdout, stderr) => {
+
+      if (err) {
+        return res.json({
+          output: err.message
+        });
+      }
+
+      const output = stdout || stderr;
+
+      res.json({
+        output: output
+      });
+
+    });
+
+  }
+
+  // =====================
+  // MODE 2 → CHATBOT
+  // =====================
+
+  else if (currentMode === 2) {
+
+    try {
+
+      const aiRes = await axios.post(AI_API_URL, {
+        message: input
+      });
+
+      res.json({
+        reply: aiRes.data.reply || aiRes.data
+      });
+
+    } catch (err) {
+
+      res.json({
+        error: "AI Server Error"
+      });
+
     }
 
-    let output = stdout || stderr;
+  }
 
-    // ✅ MAIN FIX: Convert "\n" text into actual new line
-    output = output.replace( );
-
-    res.json({ output: output });
-  });
 });
+
+
+// =====================
+// SERVER START
+// =====================
 
 const PORT = 4041;
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log("Server running on http://localhost:" + PORT);
 });
